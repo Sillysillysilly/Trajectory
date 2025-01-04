@@ -27,6 +27,27 @@ def intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3):
 
     return intersections
 
+#计算平面与多边形的交点
+def intersect_plane_duo(plane_origin, plane_normal,verts_set):
+    p0 = plane_origin
+    n = plane_normal
+    #verts_set.reverse()
+    duo=len(verts_set)
+    #print(duo)
+    # 使用mathutils库的函数进行平面与三角形的交点计算
+    intersections = []
+    for i in range(duo):
+        v1 = verts_set[i]
+        v2 = verts_set[(i + 1) % duo]
+
+        # 计算交点
+        result = mathutils.geometry.intersect_line_plane(v1, v2, p0, n)
+        if result and is_point_on_segment(result,v1,v2):
+            intersections.append(result)
+            #print(result)
+
+    return intersections
+
 def is_point_on_segment(P, A, B):
     # 计算向量AB和AP的叉积，判断是否共线
     AB = B - A
@@ -74,7 +95,8 @@ for face in faces:
     if len(face.verts) == 3:  # 确保面是三角形
         v1, v2, v3 = [v.co for v in face.verts]
         # 计算平面与三角形的交点
-        intersection = intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3)
+        # 由于网格不一定为三角形，所以更新函数，计算平面与多边形的交点
+        intersection = intersect_plane_duo(plane_origin, plane_normal, v1, v2, v3)
         if intersection:
             intersection_points.append(intersection)
 
