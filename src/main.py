@@ -91,7 +91,8 @@ def sort_points_by_distance(points):
         distances = [distance(last_point, point) for point in remaining_points]
         # 找到距离最近的点
         closest_point = remaining_points[np.argmin(distances)]
-
+        if(distance(points[0],closest_point)<distance(closest_point,last_point)):
+            sorted_points.reverse()
         if(distance(closest_point,last_point)>500):
             remaining_points.remove(closest_point)  # 从剩余点中移除
             continue
