@@ -1,6 +1,7 @@
 import bpy
 import numpy as np
 import bmesh
+import math
 import mathutils
 
 
@@ -74,6 +75,23 @@ def nearest_neighbor_sort(points):
         sorted_points.append(next_point)
         remaining_points.remove(next_point)
     return [points[i] for i in sorted_points]
+
+# 计算两点之间的欧几里得距离
+def distance(p1, p2):
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2 + (p1[2] - p2[2])**2)
+
+# 排序点：选择一个起点，找到离起点最近的点，继续重复直到所有点排序完毕
+def sort_points_by_distance(points):
+    sorted_points = [points[0]]  # 选第一个点作为起点
+    points_left = points[1:]  # 其他点
+    
+    while points_left:
+        last_point = sorted_points[-1]
+        closest_point = min(points_left, key=lambda p: distance(last_point, p))
+        sorted_points.append(closest_point)
+        points_left.remove(closest_point)
+
+    return sorted_points
 
 
 
