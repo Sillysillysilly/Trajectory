@@ -82,14 +82,22 @@ def distance(p1, p2):
 
 # 排序点：选择一个起点，找到离起点最近的点，继续重复直到所有点排序完毕
 def sort_points_by_distance(points):
-    sorted_points = [points[0]]  # 选第一个点作为起点
-    points_left = points[1:]  # 其他点
-    
-    while points_left:
-        last_point = sorted_points[-1]
-        closest_point = min(points_left, key=lambda p: distance(last_point, p))
-        sorted_points.append(closest_point)
-        points_left.remove(closest_point)
+    sorted_points = [points[0]]  # 选择第一个点作为起始点
+    remaining_points = points[1:]  # 其余的点
+
+    while remaining_points:
+        last_point = sorted_points[-1]  # 当前已排序的最后一个点
+        # 计算当前点到每个剩余点的距离
+        distances = [distance(last_point, point) for point in remaining_points]
+        # 找到距离最近的点
+        closest_point = remaining_points[np.argmin(distances)]
+
+        if(distance(closest_point,last_point)>500):
+            remaining_points.remove(closest_point)  # 从剩余点中移除
+            continue
+
+        sorted_points.append(closest_point)  # 加入已排序点列表
+        remaining_points.remove(closest_point)  # 从剩余点中移除
 
     return sorted_points
 
@@ -137,7 +145,8 @@ if intersection_points:
     curve_data.dimensions = '3D'
     
     #排序点
-    intersection_points=nearest_neighbor_sort(intersection_points)
+    #intersection_points=nearest_neighbor_sort(intersection_points)
+    intersection_points=sort_points_by_distance(intersection_points)
 
     # 使用多段曲线生成交线
     polyline = curve_data.splines.new('POLY')
