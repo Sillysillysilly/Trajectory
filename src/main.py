@@ -3,6 +3,8 @@ import numpy as np
 import bmesh
 import math
 import mathutils
+import json
+import os
 
 
 # 计算平面与三角形的交点
@@ -271,11 +273,40 @@ plane_normal = mathutils.Vector((0, 1, 0))  # 平面的法向量（假设平面�
 
 plane_set=calculate_cutting_plane(obj, plane_normal, overlap_spacing)
 
+traj_json_file={}
+traj_json_file["traj_surface"]=[]
 
 for plane in plane_set:
     print(plane["plane_origin"])
     # intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
     intersection_points = intersection_plane_surface(plane["plane_origin"], plane["plane_normal"], obj)
+
+
+    vertex_coords = [[v.x, v.y, v.z] for v in intersection_points]
+    for point in vertex_coords:
+        traj_surface_item={}
+        traj_surface_item["p"]=point
+        traj_surface_item["n"]=[
+                -0.8454278109113345,
+                0.041408269879582904,
+                -0.5324820858237848
+        ]
+        traj_surface_item["speed"]=300
+        traj_surface_item["index"]=0
+        traj_surface_item["spray"]=False
+        traj_surface_item["posture"]=[
+                864.9001628166507,
+                -1529.874297441074,
+                1246.408448081015,
+                -175.55336420121748,
+                -57.717801285442256,
+                95.25542482395923
+        ]
+        traj_surface_item["transition"]=False
+        traj_surface_item["gun_posture"]="default"
+
+        traj_json_file["traj_surface"].append(traj_surface_item)
+
 
     curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
     curve_data.dimensions = '3D'
@@ -290,4 +321,18 @@ for plane in plane_set:
     # 选中并激活新创建的对象
     bpy.context.view_layer.objects.active = curve_obj
     curve_obj.select_set(True)
+
+# 获取当前脚本所在目录
+script_dir = os.path.dirname(bpy.data.filepath) if bpy.data.filepath else os.path.dirname(__file__)
+# 定义目标文件夹和文件名
+output_folder = os.path.join(script_dir, "saved_json")
+os.makedirs(output_folder, exist_ok=True)  # 确保文件夹存在，如果不存在则创建
+# 定义文件路径
+
+filepath = os.path.join(output_folder, obj.name+"_"+str(overlap_spacing)+".json")
+ # 将数据保存为JSON文件
+with open(filepath, 'w') as json_file:
+    json.dump(traj_json_file, json_file, indent=4)
+
+#print(filepath)
 
