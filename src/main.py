@@ -102,53 +102,60 @@ def sort_points_by_distance(points):
 
     return sorted_points
 
+#生成平面和曲面的交线
+def intersection_plane_surface(plane_origin, plane_normal, obj):
+    # 确保物体是网格对象
+    if obj.type != 'MESH':
+        print("请选中一个网格对象！")
+        return None
+
+    # 获取物体的数据
+    mesh = obj.data
+
+    # 创建一个BMesh对象，用于操作网格
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
 
 
-# 获取当前选中的物体
-obj = bpy.context.object
+    # 获取物体中的所有面
+    faces = [f for f in bm.faces]
 
-# 确保物体是网格对象
-if obj.type != 'MESH':
-    print("请选中一个网格对象！")
-    exit()
+    # 定义平面（可以通过一个点和法向量定义）
+    # plane_origin = mathutils.Vector((0, 0, 1010))  # 平面上的一个点
+    # plane_normal = mathutils.Vector((0, 0, 1))  # 平面的法向量（假设平面是XY平面）
 
-# 获取物体的数据
-mesh = obj.data
+    # 计算交点
+    intersection_points = []
 
-# 创建一个BMesh对象，用于操作网格
-bm = bmesh.new()
-bm.from_mesh(mesh)
+    # 遍历网格的所有面（假设每个面是三角形）
+    for face in faces:
+        count_verts=len(face.verts)
 
-# 获取物体中的所有面
-faces = [f for f in bm.faces]
+        verts_set=[v.co for v in face.verts]
+        verts_set.reverse()
+        points = intersect_plane_duo(plane_origin, plane_normal, verts_set)
+        if points:
+            intersection_points.extend(points)
+        # if len(face.verts) == 3:  # 确保面是三角形
+        #     v1, v2, v3 = [v.co for v in face.verts]
+        #     # 计算平面和三角形的交点
+        #     points = intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3)
+        #     if points:
+        #         intersection_points.extend(points)
 
-# 定义平面（通过一个点和法向量定义）
-plane_origin = mathutils.Vector((0, 0, 400))  # 平面上的一个点
-plane_normal = mathutils.Vector((0, 0, 1))  # 平面的法向量
+    return intersection_points
 
-# 存储交点
-intersection_points = []
-
-# 遍历网格的所有面（假设每个面是三角形）
-for face in faces:
-    if len(face.verts) == 3:  # 确保面是三角形
-        v1, v2, v3 = [v.co for v in face.verts]
-        # 计算平面与三角形的交点
-        # 由于网格不一定为三角形，所以更新函数，计算平面与多边形的交点
-        intersection = intersect_plane_duo(plane_origin, plane_normal, v1, v2, v3)
-        if intersection:
-            intersection_points.append(intersection)
-
-# 如果有交点，创建一条曲线
-if intersection_points:
+#根据交点表生成相应曲线
+def generate_curve(curve_data, intersection_points):
+#     # 如果有交点，创建一条曲线
+#   if intersection_points:
     # 创建一个新的曲线对象
-    curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
-    curve_data.dimensions = '3D'
+    # curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
+    # curve_data.dimensions = '3D'
     
     #排序点
-    #intersection_points=nearest_neighbor_sort(intersection_points)
     intersection_points=sort_points_by_distance(intersection_points)
-
+    #intersection_points=nearest_neighbor_sort(intersection_points)
     # 使用多段曲线生成交线
     polyline = curve_data.splines.new('POLY')
     polyline.points.add(count=len(intersection_points) - 1)
@@ -156,17 +163,35 @@ if intersection_points:
     for i, point in enumerate(intersection_points):
         polyline.points[i].co = (point.x, point.y, point.z, 1)  # 添加x, y, z坐标
 
-    # 创建一个对象来容纳这些曲线
-    curve_obj = bpy.data.objects.new("IntersectionCurve", curve_data)
+    # return curve_data
 
-    # 将该对象添加到场景中
-    bpy.context.collection.objects.link(curve_obj)
+#以下相当于main函数，脚本中我直接写过程了就
+bpy.ops.object.mode_set(mode='OBJECT')
+# 获取当前选中的物体
+obj = bpy.context.object
 
-    # 选中并激活新创建的对象
-    bpy.context.view_layer.objects.active = curve_obj
-    curve_obj.select_set(True)
+#定义平面（可以通过一个点和法向量定义）
+#todo：后续改成数组，存储一组平面
+plane_origin = mathutils.Vector((0, 0, 1010))  # 平面上的一个点
+plane_normal = mathutils.Vector((0, 1, 0))  # 平面的法向量（假设平面是XY平面）
 
-    # 输出完成信息
-    print("交线已生成！")
-else:
-    print("没有计算到交线！")
+# intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
+intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
+
+
+    
+curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
+curve_data.dimensions = '3D'
+
+generate_curve(curve_data, intersection_points)
+# 创建一个对象来容纳这些曲线
+curve_obj = bpy.data.objects.new("IntersectionCurve", curve_data)
+
+# 将该对象添加到场景中
+bpy.context.collection.objects.link(curve_obj)
+
+# 选中并激活新创建的对象
+bpy.context.view_layer.objects.active = curve_obj
+curve_obj.select_set(True)
+
+
