@@ -65,6 +65,18 @@ def is_point_on_segment(P, A, B):
         return True
     return False
 
+def nearest_neighbor_sort(points):
+    remaining_points = list(range(len(points)))  # 记录所有点的索引
+    sorted_points = [remaining_points.pop(0)]  # 从第一个点开始
+    while remaining_points:
+        last_point = sorted_points[-1]
+        next_point = min(remaining_points, key=lambda point: distance(points[last_point], points[point]))
+        sorted_points.append(next_point)
+        remaining_points.remove(next_point)
+    return [points[i] for i in sorted_points]
+
+
+
 # 获取当前选中的物体
 obj = bpy.context.object
 
@@ -106,6 +118,9 @@ if intersection_points:
     curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
     curve_data.dimensions = '3D'
     
+    #排序点
+    intersection_points=nearest_neighbor_sort(intersection_points)
+
     # 使用多段曲线生成交线
     polyline = curve_data.splines.new('POLY')
     polyline.points.add(count=len(intersection_points) - 1)
