@@ -4,13 +4,45 @@ import bmesh
 import mathutils
 
 
-# 计算平面与三角形交点
+# 计算平面与三角形的交点
 def intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3):
-    # 使用射线与三角形的交点计算
-    # 平面方程: (P - plane_origin) · plane_normal = 0
-    # 通过求解平面与三角形相交的线段，获取交点
-    intersection = mathutils.geometry.intersect_line_tri(plane_origin, plane_origin + plane_normal, v1, v2, v3)
-    return intersection
+    # 平面的点和法向量
+    p0 = plane_origin
+    n = plane_normal
+
+    # 三角形的三个顶点
+    triangle = [v1, v2, v3]
+
+    # 使用mathutils库的函数进行平面与三角形的交点计算
+    intersections = []
+    for i in range(3):
+        v1 = triangle[i]
+        v2 = triangle[(i + 1) % 3]
+
+        # 计算交点
+        result = mathutils.geometry.intersect_line_plane(v1, v2, p0, n)
+        if result and is_point_on_segment(result,v1,v2):
+            intersections.append(result)
+            #print(result)
+
+    return intersections
+
+def is_point_on_segment(P, A, B):
+    # 计算向量AB和AP的叉积，判断是否共线
+    AB = B - A
+    AP = P - A
+    cross_product = AB.cross(AP)
+
+    # 如果叉积为零，说明共线
+    if cross_product.length < 1e-6:  # 防止浮动误差
+        return False
+
+    # 检查点P是否在A和B之间
+    if min(A.x, B.x) <= P.x <= max(A.x, B.x) and \
+       min(A.y, B.y) <= P.y <= max(A.y, B.y) and \
+       min(A.z, B.z) <= P.z <= max(A.z, B.z):
+        return True
+    return False
 
 # 获取当前选中的物体
 obj = bpy.context.object
