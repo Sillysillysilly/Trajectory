@@ -165,33 +165,129 @@ def generate_curve(curve_data, intersection_points):
 
     # return curve_data
 
+#计算物体在某方向上的跨度
+def Calculate_span(obj, plane_normal):
+    # 将方向向量归一化（确保只是方向）
+    direction_vector = np.array(plane_normal)
+    direction_unit_vector = direction_vector / np.linalg.norm(direction_vector)
+
+    # 计算每个点在该方向上的投影值
+    projections = []
+    
+    # 确保物体是网格对象
+    if obj.type != 'MESH':
+        print("请选中一个网格对象！")
+        return None
+
+    # 获取物体的数据
+    mesh = obj.data
+
+    # 创建一个BMesh对象，用于操作网格
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+
+
+    # 获取物体中的所有面
+    faces = [f for f in bm.faces]
+    verts_set=[]
+    # 遍历网格的所有面（假设每个面是三角形）
+    for face in faces:
+        for v in face.verts:
+            verts_set.append(v)
+            point=np.array([v.co.x,v.co.y,v.co.z])
+            projection = np.dot(point, direction_unit_vector)
+            projections.append(projection)
+    
+    # 找到最负和最正的投影值以及对应的点
+    min_projection_index = np.argmin(projections)  # 最负的点索引
+    max_projection_index = np.argmax(projections)  # 最正的点索引
+
+    span={}
+
+    # 获取最负点和最正点的投影值（即在该方向上的距离）
+    min_distance = projections[min_projection_index]
+    max_distance = projections[max_projection_index]
+
+    span["min_vert"] = np.array([verts_set[min_projection_index].co.x,verts_set[min_projection_index].co.y,verts_set[min_projection_index].co.z])  # 最负的点
+    span["max_vert"] = np.array([verts_set[max_projection_index].co.x,verts_set[max_projection_index].co.y,verts_set[max_projection_index].co.z])  # 最正的点
+    span["distance"] = max_distance-min_distance
+
+    return span
+
+def move_point_along_direction(point, direction_vector, distance):
+    """
+    计算一个点沿某个方向前进一定距离后的新位置。
+
+    参数:
+    - point: numpy 向量，表示原始点 (x, y, z)。
+    - direction_vector: numpy 向量，表示方向向量 (dx, dy, dz)。
+    - distance: 前进的距离 (float)。
+
+    返回:
+    - 新的位置 (numpy 向量)。
+    """
+    # 归一化方向向量
+    unit_vector = direction_vector / np.linalg.norm(direction_vector)
+    
+    # 计算新的位置
+    new_position = point + distance * unit_vector
+    
+    return new_position
+
+
+        
+#常规计算切割平面
+#plane_normal即可确定沿着哪个坐标轴进行移动切割
+def calculate_cutting_plane(obj, plane_normal, overlap_spacing):
+    obj_span=Calculate_span(obj, plane_normal)
+    cutting_num=math.floor(obj_span["distance"]/overlap_spacing)
+    plane_set=[]
+    point=obj_span["min_vert"]
+    for i in range(cutting_num):
+        plane={}
+        plane["plane_normal"]=plane_normal
+        plane["plane_origin"]=move_point_along_direction(point, plane_normal, overlap_spacing) 
+        point=plane["plane_origin"]
+        plane_set.append(plane)
+        
+        #print(point)
+
+    return plane_set
+
+
+
 #以下相当于main函数，脚本中我直接写过程了就
 bpy.ops.object.mode_set(mode='OBJECT')
 # 获取当前选中的物体
 obj = bpy.context.object
 
+#设置叠枪距离
+overlap_spacing=100
+
 #定义平面（可以通过一个点和法向量定义）
 #todo：后续改成数组，存储一组平面
-plane_origin = mathutils.Vector((0, 0, 1010))  # 平面上的一个点
+# plane_origin = mathutils.Vector((0, 0, 1010))  # 平面上的一个点
 plane_normal = mathutils.Vector((0, 1, 0))  # 平面的法向量（假设平面是XY平面）
 
-# intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
-intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
+plane_set=calculate_cutting_plane(obj, plane_normal, overlap_spacing)
 
 
-    
-curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
-curve_data.dimensions = '3D'
+for plane in plane_set:
+    print(plane["plane_origin"])
+    # intersection_points = intersection_plane_surface(plane_origin, plane_normal, obj)
+    intersection_points = intersection_plane_surface(plane["plane_origin"], plane["plane_normal"], obj)
 
-generate_curve(curve_data, intersection_points)
-# 创建一个对象来容纳这些曲线
-curve_obj = bpy.data.objects.new("IntersectionCurve", curve_data)
+    curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
+    curve_data.dimensions = '3D'
 
-# 将该对象添加到场景中
-bpy.context.collection.objects.link(curve_obj)
+    generate_curve(curve_data, intersection_points)
+    # 创建一个对象来容纳这些曲线
+    curve_obj = bpy.data.objects.new("IntersectionCurve", curve_data)
 
-# 选中并激活新创建的对象
-bpy.context.view_layer.objects.active = curve_obj
-curve_obj.select_set(True)
+    # 将该对象添加到场景中
+    bpy.context.collection.objects.link(curve_obj)
 
+    # 选中并激活新创建的对象
+    bpy.context.view_layer.objects.active = curve_obj
+    curve_obj.select_set(True)
 
