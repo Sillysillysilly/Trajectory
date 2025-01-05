@@ -7,7 +7,7 @@ import json
 import os
 
 
-# 计算平面与三角形的交点
+# 计算平面与三角形的交点（弃用）
 def intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3):
     # 平面的点和法向量
     p0 = plane_origin
@@ -32,6 +32,17 @@ def intersect_plane_triangle(plane_origin, plane_normal, v1, v2, v3):
 
 #计算平面与多边形的交点
 def intersect_plane_duo(plane_origin, plane_normal,verts_set):
+    """
+    计算平面与某一个多边形的交点。
+
+    参数:
+    - plane_origin:  Vector，表示平面上某一点。
+    - plane_normal:  Vector，表示平面法向向量。
+    - verts_set:  list，多边形的交点列表。
+
+    返回:
+    - intersections: list,交点坐标点列表。
+    """  
     p0 = plane_origin
     n = plane_normal
     #verts_set.reverse()
@@ -51,7 +62,19 @@ def intersect_plane_duo(plane_origin, plane_normal,verts_set):
 
     return intersections
 
+#判断某个点是否在某条线段上
 def is_point_on_segment(P, A, B):
+    """
+    判断点A是否在线段AB上。
+
+    参数:
+    - P: Vector,需要判断的某点坐标。
+    - A: Vector,线段AB的A端点坐标。
+    - B: Vector,线段AB的B端点坐标。
+
+    返回:
+    - T/F: Boolean,在/不在线段上。
+    """  
     # 计算向量AB和AP的叉积，判断是否共线
     AB = B - A
     AP = P - A
@@ -84,6 +107,15 @@ def distance(p1, p2):
 
 # 排序点：选择一个起点，找到离起点最近的点，继续重复直到所有点排序完毕
 def sort_points_by_distance(points):
+    """
+    给点坐标点列表，进行排序。
+
+    参数:
+    - points: list,坐标点列表。
+
+    返回:
+    - sorted_points: list,排序后的坐标点列表。
+    """  
     sorted_points = [points[0]]  # 选择第一个点作为起始点
     remaining_points = points[1:]  # 其余的点
 
@@ -109,6 +141,17 @@ def sort_points_by_distance(points):
 
 #生成平面和曲面的交线
 def intersection_plane_surface(plane_origin, plane_normal, obj):
+    """
+    给定平面和曲面，生成两个面的交线坐标列表。
+
+    参数:
+    - obj: obj对象。
+    - plane_origin:  Vector，表示平面上某一点。
+    - plane_normal:  Vector，表示平面法向向量。
+
+    返回:
+    - None
+    """   
     # 确保物体是网格对象
     if obj.type != 'MESH':
         print("请选中一个网格对象！")
@@ -152,11 +195,16 @@ def intersection_plane_surface(plane_origin, plane_normal, obj):
 
 #根据交点表生成相应曲线
 def generate_curve(curve_data, intersection_points):
-#     # 如果有交点，创建一条曲线
-#   if intersection_points:
-    # 创建一个新的曲线对象
-    # curve_data = bpy.data.curves.new('IntersectionCurve', type='CURVE')
-    # curve_data.dimensions = '3D'
+    """
+    根据交点表生成相应曲线。
+
+    参数:
+    - curve_data: bpy曲线对象。
+    - intersection_points: list，交点列表（可以无序）。
+
+    返回:
+    - None
+    """   
     
     #排序点
     intersection_points=sort_points_by_distance(intersection_points)
@@ -172,6 +220,16 @@ def generate_curve(curve_data, intersection_points):
 
 #计算物体在某方向上的跨度
 def Calculate_span(obj, plane_normal):
+    """
+    计算一个点沿某个方向前进一定距离后的新位置。
+
+    参数:
+    - obj: obj对象。
+    - plane_normal: Vector，表示平面法向向量。
+
+    返回:
+    - 当前向量方向上obj对象占据的最大跨度 (float)。
+    """
     # 将方向向量归一化（确保只是方向）
     direction_vector = np.array(plane_normal)
     direction_unit_vector = direction_vector / np.linalg.norm(direction_vector)
@@ -244,6 +302,17 @@ def move_point_along_direction(point, direction_vector, distance):
 #常规计算切割平面
 #plane_normal即可确定沿着哪个坐标轴进行移动切割
 def calculate_cutting_plane(obj, plane_normal, overlap_spacing):
+    """
+    计算对于当前模型，以给定法向量的平面，一定的叠枪距离，计算出一组切割平面。
+
+    参数:
+    - obj: obj对象。
+    - plane_normal: Vector，表示平面法向向量。
+    - overlap_spacing: 叠枪距离 (int)。
+
+    返回:
+    - 一组平面的原点 (list)。
+    """
     obj_span=Calculate_span(obj, plane_normal)
     cutting_num=math.floor(obj_span["distance"]/overlap_spacing)
     plane_set=[]
