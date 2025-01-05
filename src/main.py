@@ -95,6 +95,9 @@ def sort_points_by_distance(points):
         closest_point = remaining_points[np.argmin(distances)]
         if(distance(points[0],closest_point)<distance(closest_point,last_point)):
             sorted_points.reverse()
+        if(closest_point == last_point):
+            remaining_points.remove(closest_point)  # 从剩余点中移除
+            continue
         if(distance(closest_point,last_point)>500):
             remaining_points.remove(closest_point)  # 从剩余点中移除
             continue
@@ -269,7 +272,7 @@ overlap_spacing=100
 #定义平面（可以通过一个点和法向量定义）
 #todo：后续改成数组，存储一组平面
 # plane_origin = mathutils.Vector((0, 0, 1010))  # 平面上的一个点
-plane_normal = mathutils.Vector((0, 1, 0))  # 平面的法向量（假设平面是XY平面）
+plane_normal = mathutils.Vector((1, 0, 0))  # 平面的法向量
 
 plane_set=calculate_cutting_plane(obj, plane_normal, overlap_spacing)
 
@@ -283,6 +286,7 @@ for plane in plane_set:
 
 
     vertex_coords = [[v.x, v.y, v.z] for v in intersection_points]
+
     for point in vertex_coords:
         traj_surface_item={}
         traj_surface_item["p"]=point
